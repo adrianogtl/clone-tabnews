@@ -33,7 +33,7 @@ async function getHandler(request, response) {
     console.error(error);
     throw error;
   } finally {
-    dbClient.end();
+    dbClient?.end();
   }
 }
 
@@ -54,6 +54,6 @@ async function postHandler(request, response) {
 
     return response.status(200).json(migratedMigrations);
   } finally {
-    dbClient.end();
+    dbClient?.end();
   }
 }
