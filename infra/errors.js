@@ -79,6 +79,27 @@ export class ValidationError extends Error {
   }
 }
 
+export class ForbiddenError extends Error {
+  constructor({ cause, message, action }) {
+    super(message || "Access Denied", {
+      cause,
+    });
+
+    this.name = "ForbiddenError";
+    this.action = action || "Check require features before continue.";
+    this.statusCode = 403;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      status_code: this.statusCode,
+    };
+  }
+}
+
 export class UnauthorizedError extends Error {
   constructor({ cause, message, action }) {
     super(message || "User not authenticated", {
