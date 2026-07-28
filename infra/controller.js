@@ -103,7 +103,7 @@ function canRequest(feature) {
 
     throw new ForbiddenError({
       message: "You do not have permission to execute this action.",
-      action: `Check if your user has the feature ${feature}`,
+      action: `Check if your user has the feature "${feature}"`,
     });
   };
 }
