@@ -3,7 +3,6 @@ import { version as uuidVersion } from "uuid";
 import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 import activation from "models/activation.js";
-import { getExpectedRequestStore } from "next/dist/client/components/request-async-storage.external";
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -139,6 +138,7 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
       expect(activatedUser.features).toEqual([
         "create:session",
         "read:session",
+        "update:user",
       ]);
     });
 
