@@ -105,6 +105,43 @@ describe("PATCH /api/v1/users/[username]", () => {
       });
     });
 
+    test("With 'userB' targeting 'userA' username", async () => {
+      await orchestrator.createUser({
+        username: "userA",
+      });
+
+      const createdUserB = await orchestrator.createUser({
+        username: "userB",
+      });
+
+      const activatedUserB = await orchestrator.activateUser(createdUserB);
+      const sessionObjectB = await orchestrator.createSession(
+        activatedUserB.id,
+      );
+
+      const response = await fetch("http://localhost:3000/api/v1/users/userA", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `session_id=${sessionObjectB.token}`,
+        },
+        body: JSON.stringify({
+          username: "userC",
+        }),
+      });
+
+      expect(response.status).toBe(403);
+
+      const responseBody = await response.json();
+
+      expect(responseBody).toEqual({
+        name: "ForbiddenError",
+        message: "You do not have permission to update another user.",
+        action: "Check if you have the feature to update another user.",
+        status_code: 403,
+      });
+    });
+
     test("With duplicated 'email'", async () => {
       await orchestrator.createUser({
         email: "email1@email.com",
@@ -142,6 +179,45 @@ describe("PATCH /api/v1/users/[username]", () => {
         message: "This email is already in use.",
         action: "Use another email in this operation.",
         status_code: 400,
+      });
+    });
+
+    test("With 'userD' targeting 'userC' email", async () => {
+      await orchestrator.createUser({
+        username: "userc",
+        email: "userc@email.com",
+      });
+
+      const createdUserD = await orchestrator.createUser({
+        username: "userd",
+        email: "userd@email.com",
+      });
+
+      const activatedUserD = await orchestrator.activateUser(createdUserD);
+      const sessionObjectD = await orchestrator.createSession(
+        activatedUserD.id,
+      );
+
+      const response = await fetch(`http://localhost:3000/api/v1/users/userc`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `session_id=${sessionObjectD.token}`,
+        },
+        body: JSON.stringify({
+          email: "usere@email.com",
+        }),
+      });
+
+      expect(response.status).toBe(403);
+
+      const responseBody = await response.json();
+
+      expect(responseBody).toEqual({
+        name: "ForbiddenError",
+        message: "You do not have permission to update another user.",
+        action: "Check if you have the feature to update another user.",
+        status_code: 403,
       });
     });
 
@@ -283,6 +359,44 @@ describe("PATCH /api/v1/users/[username]", () => {
 
       expect(correctPasswordMatch).toBe(true);
       expect(incorrectPasswordMatch).toBe(false);
+    });
+
+    test("With user 'beta' targeting user 'alpha' password", async () => {
+      await orchestrator.createUser({
+        username: "alpha",
+      });
+
+      const createdUserBeta = await orchestrator.createUser({
+        username: "beta",
+      });
+
+      const activatedUserBeta =
+        await orchestrator.activateUser(createdUserBeta);
+      const sessionObjectBeta = await orchestrator.createSession(
+        activatedUserBeta.id,
+      );
+
+      const response = await fetch(`http://localhost:3000/api/v1/users/alpha`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `session_id=${sessionObjectBeta.token}`,
+        },
+        body: JSON.stringify({
+          password: "newPasswordForUserAlpha",
+        }),
+      });
+
+      expect(response.status).toBe(403);
+
+      const responseBody = await response.json();
+
+      expect(responseBody).toEqual({
+        name: "ForbiddenError",
+        message: "You do not have permission to update another user.",
+        action: "Check if you have the feature to update another user.",
+        status_code: 403,
+      });
     });
   });
 });
