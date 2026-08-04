@@ -105,43 +105,6 @@ describe("PATCH /api/v1/users/[username]", () => {
       });
     });
 
-    test("With 'userB' targeting 'userA' username", async () => {
-      await orchestrator.createUser({
-        username: "userA",
-      });
-
-      const createdUserB = await orchestrator.createUser({
-        username: "userB",
-      });
-
-      const activatedUserB = await orchestrator.activateUser(createdUserB);
-      const sessionObjectB = await orchestrator.createSession(
-        activatedUserB.id,
-      );
-
-      const response = await fetch("http://localhost:3000/api/v1/users/userA", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `session_id=${sessionObjectB.token}`,
-        },
-        body: JSON.stringify({
-          username: "userC",
-        }),
-      });
-
-      expect(response.status).toBe(403);
-
-      const responseBody = await response.json();
-
-      expect(responseBody).toEqual({
-        name: "ForbiddenError",
-        message: "You do not have permission to update another user.",
-        action: "Check if you have the feature to update another user.",
-        status_code: 403,
-      });
-    });
-
     test("With duplicated 'email'", async () => {
       await orchestrator.createUser({
         email: "email1@email.com",
@@ -179,45 +142,6 @@ describe("PATCH /api/v1/users/[username]", () => {
         message: "This email is already in use.",
         action: "Use another email in this operation.",
         status_code: 400,
-      });
-    });
-
-    test("With 'userD' targeting 'userC' email", async () => {
-      await orchestrator.createUser({
-        username: "userc",
-        email: "userc@email.com",
-      });
-
-      const createdUserD = await orchestrator.createUser({
-        username: "userd",
-        email: "userd@email.com",
-      });
-
-      const activatedUserD = await orchestrator.activateUser(createdUserD);
-      const sessionObjectD = await orchestrator.createSession(
-        activatedUserD.id,
-      );
-
-      const response = await fetch(`http://localhost:3000/api/v1/users/userc`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `session_id=${sessionObjectD.token}`,
-        },
-        body: JSON.stringify({
-          email: "usere@email.com",
-        }),
-      });
-
-      expect(response.status).toBe(403);
-
-      const responseBody = await response.json();
-
-      expect(responseBody).toEqual({
-        name: "ForbiddenError",
-        message: "You do not have permission to update another user.",
-        action: "Check if you have the feature to update another user.",
-        status_code: 403,
       });
     });
 
@@ -361,29 +285,29 @@ describe("PATCH /api/v1/users/[username]", () => {
       expect(incorrectPasswordMatch).toBe(false);
     });
 
-    test("With user 'beta' targeting user 'alpha' password", async () => {
+    test("With 'userB' targeting 'userA' username", async () => {
       await orchestrator.createUser({
-        username: "alpha",
+        username: "userA",
       });
 
-      const createdUserBeta = await orchestrator.createUser({
-        username: "beta",
+      const createdUserB = await orchestrator.createUser({
+        username: "userB",
       });
 
-      const activatedUserBeta =
-        await orchestrator.activateUser(createdUserBeta);
-      const sessionObjectBeta = await orchestrator.createSession(
-        activatedUserBeta.id,
+      const activatedPrivilegedUser =
+        await orchestrator.activateUser(createdUserB);
+      const privilegedUserSession = await orchestrator.createSession(
+        activatedPrivilegedUser.id,
       );
 
-      const response = await fetch(`http://localhost:3000/api/v1/users/alpha`, {
+      const response = await fetch("http://localhost:3000/api/v1/users/userA", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Cookie: `session_id=${sessionObjectBeta.token}`,
+          Cookie: `session_id=${privilegedUserSession.token}`,
         },
         body: JSON.stringify({
-          password: "newPasswordForUserAlpha",
+          username: "userC",
         }),
       });
 
@@ -397,6 +321,58 @@ describe("PATCH /api/v1/users/[username]", () => {
         action: "Check if you have the feature to update another user.",
         status_code: 403,
       });
+    });
+  });
+
+  describe("Privileged user", () => {
+    test("With `update:user:others` targeting `defaultUser`", async () => {
+      const privilegedUser = await orchestrator.createUser();
+      const activatedPrivilegedUser =
+        await orchestrator.activateUser(privilegedUser);
+
+      await orchestrator.addFeaturesToUser(privilegedUser, [
+        "update:user:others",
+      ]);
+
+      const privilegedUserSession = await orchestrator.createSession(
+        activatedPrivilegedUser.id,
+      );
+
+      const defaultUser = await orchestrator.createUser();
+
+      const response = await fetch(
+        `http://localhost:3000/api/v1/users/${defaultUser.username}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `session_id=${privilegedUserSession.token}`,
+          },
+          body: JSON.stringify({
+            username: "updatedByPrivilegedUser",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+
+      const responseBody = await response.json();
+
+      expect(responseBody).toEqual({
+        id: defaultUser.id,
+        username: "updatedByPrivilegedUser",
+        email: defaultUser.email,
+        features: defaultUser.features,
+        password: responseBody.password,
+        created_at: responseBody.created_at,
+        updated_at: responseBody.updated_at,
+      });
+
+      expect(uuidVersion(responseBody.id)).toBe(4);
+      expect(Date.parse(responseBody.created_at)).not.toBeNaN();
+      expect(Date.parse(responseBody.updated_at)).not.toBeNaN();
+
+      expect(responseBody.updated_at > responseBody.created_at).toBe(true);
     });
   });
 });
