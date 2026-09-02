@@ -108,7 +108,7 @@ async function create(userId) {
 
 async function sendEmailToUser(user, activationToken) {
   await email.send({
-    from: "TabNews <contact@tabnews.com>",
+    from: "TabNews <contact@tabnews.adrianogtl.dev.br>",
     to: user.email,
     subject: "Activate your account in TabNews!",
     text: `${user.username}, please activate your account by clicking the link below:
