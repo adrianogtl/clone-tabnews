@@ -39,14 +39,15 @@ export class MethodNotAllowedError extends Error {
 }
 
 export class ServiceError extends Error {
-  constructor({ cause, message }) {
+  constructor({ cause, message, action, context }) {
     super(message || "Service unavailable.", {
       cause,
     });
 
     this.name = "ServiceError";
-    this.action = "Check if the service is available.";
+    this.action = action || "Check if the service is available.";
     this.statusCode = 503;
+    this.context = context;
   }
 
   toJSON() {
@@ -55,6 +56,7 @@ export class ServiceError extends Error {
       message: this.message,
       action: this.action,
       status_code: this.statusCode,
+      context: this.context,
     };
   }
 }
@@ -67,6 +69,27 @@ export class ValidationError extends Error {
     this.name = "ValidationError";
     this.action = action || "Adjust the data sent and try again.";
     this.statusCode = 400;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      status_code: this.statusCode,
+    };
+  }
+}
+
+export class ForbiddenError extends Error {
+  constructor({ cause, message, action }) {
+    super(message || "Access Denied", {
+      cause,
+    });
+
+    this.name = "ForbiddenError";
+    this.action = action || "Check require features before continue.";
+    this.statusCode = 403;
   }
 
   toJSON() {
