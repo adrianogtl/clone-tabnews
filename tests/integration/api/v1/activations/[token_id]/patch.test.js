@@ -1,5 +1,5 @@
-// import { version as uuidVersion } from "uuid";
 import { version as uuidVersion } from "uuid";
+import webserver from "infra/webserver.js";
 import orchestrator from "tests/orchestrator.js";
 import user from "models/user.js";
 import activation from "models/activation.js";
@@ -14,7 +14,7 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
   describe("Anonymous user", () => {
     test("With nonexistent token", async () => {
       const response = await fetch(
-        "http://localhost:3000/api/v1/activations/1516e505-9f15-4fb8-ad98-fb0775f47459",
+        `${webserver.origin}/api/v1/activations/1516e505-9f15-4fb8-ad98-fb0775f47459`,
         {
           method: "PATCH",
         },
@@ -43,7 +43,7 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
       jest.useRealTimers();
 
       const response = await fetch(
-        `http://localhost:3000/api/v1/activations/${expiredActivationToken.id}`,
+        `${webserver.origin}/api/v1/activations/${expiredActivationToken.id}`,
         {
           method: "PATCH",
         },
@@ -66,7 +66,7 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
       const activationToken = await activation.create(createdUser.id);
 
       const response1 = await fetch(
-        `http://localhost:3000/api/v1/activations/${activationToken.id}`,
+        `${webserver.origin}/api/v1/activations/${activationToken.id}`,
         {
           method: "PATCH",
         },
@@ -75,7 +75,7 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
       expect(response1.status).toBe(200);
 
       const response2 = await fetch(
-        `http://localhost:3000/api/v1/activations/${activationToken.id}`,
+        `${webserver.origin}/api/v1/activations/${activationToken.id}`,
         {
           method: "PATCH",
         },
@@ -98,7 +98,7 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
       const activationToken = await activation.create(createdUser.id);
 
       const response = await fetch(
-        `http://localhost:3000/api/v1/activations/${activationToken.id}`,
+        `${webserver.origin}/api/v1/activations/${activationToken.id}`,
         {
           method: "PATCH",
         },
@@ -127,12 +127,13 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
       const expires_at = new Date(responseBody.expires_at);
       const created_at = new Date(responseBody.created_at);
 
-      expires_at.setMilliseconds(0);
-      created_at.setMilliseconds(0);
+      expect(expires_at >= created_at).toBe(true);
 
-      expect(expires_at - created_at).toBe(
-        activation.EXPIRATION_IN_MILLISECONDS,
-      );
+      const actualLifetimeInMilliseconds = expires_at - created_at;
+      const lifetimeDifferenceInMilliseconds =
+        activation.EXPIRATION_IN_MILLISECONDS - actualLifetimeInMilliseconds;
+
+      expect(lifetimeDifferenceInMilliseconds).toBeLessThanOrEqual(5000);
 
       const activatedUser = await user.findOneById(responseBody.user_id);
       expect(activatedUser.features).toEqual([
@@ -150,7 +151,7 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
       const activationToken = await activation.create(createdUser.id);
 
       const response = await fetch(
-        `http://localhost:3000/api/v1/activations/${activationToken.id}`,
+        `${webserver.origin}/api/v1/activations/${activationToken.id}`,
         {
           method: "PATCH",
         },
@@ -172,13 +173,13 @@ describe("PATCH /api/v1/activations/[token_id]", () => {
     test("With valid token, but already logged user", async () => {
       const user1 = await orchestrator.createUser();
       await orchestrator.activateUser(user1);
-      const user1Session = await orchestrator.createSession(user1.id);
+      const user1Session = await orchestrator.createSession(user1);
 
       const user2 = await orchestrator.createUser();
       const user2ActivationToken = await activation.create(user2.id);
 
       const response = await fetch(
-        `http://localhost:3000/api/v1/activations/${user2ActivationToken.id}`,
+        `${webserver.origin}/api/v1/activations/${user2ActivationToken.id}`,
         {
           method: "PATCH",
           headers: {

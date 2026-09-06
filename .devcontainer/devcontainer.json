@@ -1,7 +1,6 @@
 {
   "image": "mcr.microsoft.com/devcontainers/universal:2",
   "features": {
-    // Lazygit - https://github.com/jesseduffield/lazygit
     "ghcr.io/devcontainer-community/devcontainer-features/lazygit:1": {}
   }
 }

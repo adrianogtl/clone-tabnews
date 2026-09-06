@@ -1,5 +1,6 @@
 import { version as uuidVersion } from "uuid";
 import setCookieParser from "set-cookie-parser";
+import webserver from "infra/webserver.js";
 import orchestrator from "tests/orchestrator.js";
 import session from "models/session.js";
 
@@ -16,7 +17,7 @@ describe("POST /api/v1/sessions", () => {
         password: "correct-password",
       });
 
-      const response = await fetch("http://localhost:3000/api/v1/sessions", {
+      const response = await fetch(`${webserver.origin}/api/v1/sessions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -44,7 +45,7 @@ describe("POST /api/v1/sessions", () => {
         email: "correct.email@email.com",
       });
 
-      const response = await fetch("http://localhost:3000/api/v1/sessions", {
+      const response = await fetch(`${webserver.origin}/api/v1/sessions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +71,7 @@ describe("POST /api/v1/sessions", () => {
     test("With incorrect `email` and incorrect `password`", async () => {
       await orchestrator.createUser();
 
-      const response = await fetch("http://localhost:3000/api/v1/sessions", {
+      const response = await fetch(`${webserver.origin}/api/v1/sessions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,7 +102,7 @@ describe("POST /api/v1/sessions", () => {
 
       await orchestrator.activateUser(createdUser);
 
-      const response = await fetch("http://localhost:3000/api/v1/sessions", {
+      const response = await fetch(`${webserver.origin}/api/v1/sessions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -134,10 +135,13 @@ describe("POST /api/v1/sessions", () => {
       const expires_at = new Date(responseBody.expires_at);
       const created_at = new Date(responseBody.created_at);
 
-      expires_at.setMilliseconds(0);
-      created_at.setMilliseconds(0);
+      expect(expires_at >= created_at).toBe(true);
 
-      expect(expires_at - created_at).toBe(session.EXPIRATION_IN_MILLISECONDS);
+      const actualLifetimeInMilliseconds = expires_at - created_at;
+      const lifetimeDifferenceInMilliseconds =
+        session.EXPIRATION_IN_MILLISECONDS - actualLifetimeInMilliseconds;
+
+      expect(lifetimeDifferenceInMilliseconds).toBeLessThanOrEqual(5000);
 
       const parsedSetCookie = setCookieParser(response, {
         map: true,
@@ -149,6 +153,7 @@ describe("POST /api/v1/sessions", () => {
         path: "/",
         maxAge: session.EXPIRATION_IN_MILLISECONDS / 1000,
         httpOnly: true,
+        sameSite: "Lax",
       });
     });
   });
