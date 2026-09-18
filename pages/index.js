@@ -1,5 +1,11 @@
+import DefaultLayout from "interface/DefaultLayout";
+
 function Home() {
-  return <h1>TabNews</h1>;
+  return (
+    <DefaultLayout>
+      <h1>TabNews</h1>
+    </DefaultLayout>
+  );
 }
 
 export default Home;
